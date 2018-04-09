@@ -45,7 +45,7 @@ class Block {
         //set hash based on static hash function
         const hash = Block.hash(timestamp, lastHash, data);
 
-        return new this (timestamp, lastHash, hash, data);
+        return new this(timestamp, lastHash, hash, data);
     }
 
     /**
@@ -57,6 +57,15 @@ class Block {
      */
     static hash(timestamp, lastHash, data) {
         return SHA256(`${timestamp}${lastHash}${data}`).toString();
+    }
+
+    /**
+     * blockHash function - returns same SHA256 encrypted hash based on inputted block object
+     * @param {object} block 
+     */
+    static blockHash(block) {
+        const { timeStamp, lastHash, data } = block;
+        return Block.hash(timeStamp, lastHash, data);
     }
 }
 
