@@ -1,4 +1,4 @@
-const Block = require('../block');
+const Block = require('../blockchain/block');
 
 //test description - Block
 describe('Block', () => {

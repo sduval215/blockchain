@@ -1,5 +1,5 @@
-const Block = require('../block');
-const Blockchain = require('../blockchain');
+const Block = require('../blockchain/block');
+const Blockchain = require('../blockchain/index');
 
 describe('Blockchain', () => {
     //instantiate variables
