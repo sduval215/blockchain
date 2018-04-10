@@ -21,6 +21,8 @@ app.get('/blocks', (req, res) => {
     res.json(blockchain.chain);
 }) 
 
+//second endpoint of '/mine'
+//POST method to add block to blockchain based on user input (req.body.data)
 app.post('/mine', (req,res) => {
     //create/add new block using blockchain.addBlock() method - req.body.data as user input data
     const block = blockchain.addBlock(req.body.data);
