@@ -2,14 +2,16 @@
 
 //required packages
 const SHA256 = require('crypto-js/sha256');
+const { DIFFICULTY } = require('../config');
 
 class Block {
     //necessary arguments for block - hash, lastHash, timeStamp
-    constructor(timeStamp, lastHash, hash, data){
+    constructor(timeStamp, lastHash, hash, data, nonce){
        this.hash = hash;
        this.lastHash = lastHash;
        this.timeStamp = timeStamp;
        this.data = data;
+       this.nonce = nonce;
     }
 
     /**
@@ -20,6 +22,7 @@ class Block {
             Timestamp: ${this.timeStamp}
             Lash Hash: ${this.lastHash.substring(0,15)}
             Hash     : ${this.hash.substring(0,15)}
+            Nonce    : ${this.nonce}
             Data     : ${this.data}`;
     }
 
@@ -28,7 +31,7 @@ class Block {
      */
     static genesis() {
         //return reference to Block with genesis argument data
-        return new this('Genesis Time', '------', 'first hash', [])
+        return new this('Genesis Time', '------', 'first hash', [], 0)
     }
 
     /**
@@ -38,14 +41,27 @@ class Block {
      * @param {array} data 
      */
     static mineBlock(lastBlock, data) {
-        //generate timestamp
-        const timestamp = Date.now();
+        //declare hash and timestamp variable
+        let hash, timestamp ;
         //create lastHash constant set as lastBlock's hash
         const lastHash = lastBlock.hash;
-        //set hash based on static hash function
-        const hash = Block.hash(timestamp, lastHash, data);
+        //set nonce value
+        let nonce = 0;
 
-        return new this(timestamp, lastHash, hash, data);
+        /* 
+            generate new hash value(s) WHILE the created hash value
+            created DOES NOT have the stated DIFFICULTY value of trailing zero(es)
+        */
+        do {
+            //increment nonce value
+            nonce++;
+            //set hash based on static hash function
+            hash = Block.hash(timestamp, lastHash, data, nonce);
+            //recreate timestamp on every loop for valid time signature
+            timestamp = Date.now();
+        } while (hash.substr(0, DIFFICULTY) !== '0'.repeat(DIFFICULTY));
+
+        return new this(timestamp, lastHash, hash, data, nonce);
     }
 
     /**
@@ -55,8 +71,8 @@ class Block {
      * @param {string} lastHash 
      * @param {array} data 
      */
-    static hash(timestamp, lastHash, data) {
-        return SHA256(`${timestamp}${lastHash}${data}`).toString();
+    static hash(timestamp, lastHash, data, nonce) {
+        return SHA256(`${timestamp}${lastHash}${data}${nonce}`).toString();
     }
 
     /**
@@ -64,8 +80,8 @@ class Block {
      * @param {object} block 
      */
     static blockHash(block) {
-        const { timeStamp, lastHash, data } = block;
-        return Block.hash(timeStamp, lastHash, data);
+        const { timeStamp, lastHash, data, nonce } = block;
+        return Block.hash(timeStamp, lastHash, data, nonce);
     }
 }
 
