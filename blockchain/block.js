@@ -2,16 +2,17 @@
 
 //required packages
 const SHA256 = require('crypto-js/sha256');
-const { DIFFICULTY } = require('../config');
+const { DIFFICULTY, MINE_RATE } = require('../config');
 
 class Block {
     //necessary arguments for block - hash, lastHash, timeStamp
-    constructor(timeStamp, lastHash, hash, data, nonce){
+    constructor(timeStamp, lastHash, hash, data, nonce, difficulty){
        this.hash = hash;
        this.lastHash = lastHash;
        this.timeStamp = timeStamp;
        this.data = data;
        this.nonce = nonce;
+       this.difficulty = difficulty || DIFFICULTY;
     }
 
     /**
@@ -19,11 +20,12 @@ class Block {
      */
     toString() {
         return `Block -
-            Timestamp: ${this.timeStamp}
-            Lash Hash: ${this.lastHash.substring(0,15)}
-            Hash     : ${this.hash.substring(0,15)}
-            Nonce    : ${this.nonce}
-            Data     : ${this.data}`;
+            Timestamp : ${this.timeStamp}
+            Lash Hash : ${this.lastHash.substring(0,15)}
+            Hash      : ${this.hash.substring(0,15)}
+            Nonce     : ${this.nonce}
+            Difficulty: ${this.difficulty}
+            Data      : ${this.data}`;
     }
 
     /**
@@ -31,7 +33,7 @@ class Block {
      */
     static genesis() {
         //return reference to Block with genesis argument data
-        return new this('Genesis Time', '------', 'first hash', [], 0)
+        return new this('Genesis Time', '------', 'first hash', [], 0, DIFFICULTY)
     }
 
     /**
@@ -45,9 +47,10 @@ class Block {
         let hash, timestamp ;
         //create lastHash constant set as lastBlock's hash
         const lastHash = lastBlock.hash;
+        //get difficulty of last block
+        let { difficulty } = lastBlock;
         //set nonce value
         let nonce = 0;
-
         /* 
             generate new hash value(s) WHILE the created hash value
             created DOES NOT have the stated DIFFICULTY value of trailing zero(es)
@@ -55,13 +58,15 @@ class Block {
         do {
             //increment nonce value
             nonce++;
-            //set hash based on static hash function
-            hash = Block.hash(timestamp, lastHash, data, nonce);
             //recreate timestamp on every loop for valid time signature
             timestamp = Date.now();
-        } while (hash.substr(0, DIFFICULTY) !== '0'.repeat(DIFFICULTY));
+            //set difficulty based on calculation from mine rates and timestamp(s)
+            difficulty = Block.adjustDifficulty(lastBlock, timestamp)
+            //set hash based on static hash function
+            hash = Block.hash(timestamp, lastHash, data, nonce, difficulty);
+        } while (hash.substr(0, difficulty) !== '0'.repeat(difficulty));
 
-        return new this(timestamp, lastHash, hash, data, nonce);
+        return new this(timestamp, lastHash, hash, data, nonce, difficulty);
     }
 
     /**
@@ -71,8 +76,8 @@ class Block {
      * @param {string} lastHash 
      * @param {array} data 
      */
-    static hash(timestamp, lastHash, data, nonce) {
-        return SHA256(`${timestamp}${lastHash}${data}${nonce}`).toString();
+    static hash(timestamp, lastHash, data, nonce, difficulty) {
+        return SHA256(`${timestamp}${lastHash}${data}${nonce}${difficulty}`).toString();
     }
 
     /**
@@ -80,8 +85,22 @@ class Block {
      * @param {object} block 
      */
     static blockHash(block) {
-        const { timeStamp, lastHash, data, nonce } = block;
-        return Block.hash(timeStamp, lastHash, data, nonce);
+        const { timeStamp, lastHash, data, nonce, difficulty } = block;
+        return Block.hash(timeStamp, lastHash, data, nonce, difficulty);
+    }
+
+    /**
+     * adjustDifficulty function - adjusts difficulty value based on the value
+     * differences between the timestamp and mine rates
+     * @param {*} lastBlock 
+     * @param {*} timestamp 
+     */
+    static adjustDifficulty(lastBlock, currentTime) { 
+        //get lastBlock.difficulty
+        let { difficulty } = lastBlock;
+        //adjust difficulty based on timestamps and mine rate difference value(s)
+        difficulty = (lastBlock.timeStamp + MINE_RATE) > currentTime ? difficulty + 1 :  difficulty - 1;
+        return difficulty;
     }
 }
 
